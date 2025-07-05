@@ -9,12 +9,40 @@
 🔗 **テーブル間参照**: 複数のテーブル間でのデータ参照と計算  
 ⚡ **高性能**: Redisキャッシュによる高速計算とWebSocketリアルタイム更新  
 🏗️ **スケーラブル**: MongoDB + Express + React + TypeScriptの堅牢な構成  
+🎨 **モダンUI**: システム設計に基づいた直感的なユーザーインターフェース  
 
 ## 技術スタック
 
 - **Backend**: Node.js, Express, MongoDB, Redis, Socket.IO
-- **Frontend**: React, TypeScript, AG-Grid, Monaco Editor
+- **Frontend**: React, TypeScript, AG-Grid
 - **Infrastructure**: Docker, Docker Compose
+
+## UI/UX設計
+
+システムは.claude/systemdesign.mdの仕様に基づいて設計されており、以下のレイアウトを採用：
+
+```
+┌─────────────────────────────────────────────────┐
+│  ツールバー（表選択・新規作成・設定）               │
+├─────────────┬───────────────────────────────────┤
+│             │                                   │
+│  サイドバー  │        表ビュー                   │
+│             │   （編集可能なグリッド）            │
+│  ・表一覧    │                                   │
+│  ・数式一覧  │                                   │
+│  ・履歴     │                                   │
+│             │                                   │
+├─────────────┴───────────────────────────────────┤
+│  数式エディタ（選択セルの数式を表示・編集）         │
+└─────────────────────────────────────────────────┘
+```
+
+### 主要コンポーネント
+
+- **Toolbar**: システム全体の操作ボタンと選択中テーブルの表示
+- **Sidebar**: テーブル一覧、数式一覧、履歴の管理
+- **TableGrid**: AG-Gridベースの編集可能なスプレッドシート
+- **FormulaEditor**: 数式入力・編集用のエディタ（シンタックスハイライト対応）
 
 ## クイックスタート
 
@@ -49,7 +77,22 @@ cd frontend && npm start
 - バックエンドAPI: http://localhost:3001
 - ヘルスチェック: http://localhost:3001/health
 
-## 使用例
+## 使用方法
+
+### Webインターフェース使用
+1. http://localhost:3000 にアクセス
+2. ツールバーの「➕ 新規表」をクリックしてテーブル作成
+3. サイドバーでテーブルを選択
+4. グリッドでセル編集（ダブルクリックまたはF2キー）
+5. 「🧮 数式エディタ」でセルに数式を追加
+
+### キーボードショートカット
+- **F2**: 選択セルの数式編集モード
+- **Tab**: 次のセルに移動
+- **Enter**: 下のセルに移動
+- **Esc**: 編集モードを終了
+
+## API使用例
 
 ### テーブル作成
 ```bash
@@ -123,18 +166,31 @@ curl -X POST http://localhost:3001/api/formulas \
 
 ```
 calculationTables/
-├── backend/                 # Node.js API サーバー
+├── .claude/                # Claude Code設定・仕様書
+│   ├── instructions.md     # 実装手順書
+│   └── systemdesign.md     # システム設計仕様
+├── backend/                # Node.js API サーバー
 │   ├── src/
 │   │   ├── models/         # MongoDB モデル定義
+│   │   ├── controllers/    # API コントローラー
+│   │   ├── routes/         # API ルーティング
 │   │   ├── engine/         # 計算エンジン & 依存関係管理
 │   │   ├── websocket/      # WebSocket ハンドラー
 │   │   └── app.js          # メインアプリケーション
 │   └── tests/              # テストファイル
 ├── frontend/               # React フロントエンド
 │   ├── src/
-│   │   ├── components/     # React コンポーネント
+│   │   ├── components/     # UIコンポーネント
+│   │   │   ├── Toolbar.tsx       # ツールバー
+│   │   │   ├── Sidebar.tsx       # サイドバー
+│   │   │   ├── TableGrid.tsx     # 表グリッド
+│   │   │   └── FormulaEditor.tsx # 数式エディタ
 │   │   ├── hooks/          # カスタムフック
-│   │   └── services/       # API クライアント
+│   │   │   ├── useTableManagement.ts  # テーブル管理
+│   │   │   ├── useTableData.ts        # テーブルデータ
+│   │   │   ├── useWebSocket.ts        # WebSocket
+│   │   │   └── useFormula.ts          # 数式処理
+│   │   └── App.tsx         # メインアプリケーション
 ├── shared/                 # 共有型定義
 └── docker-compose.yml      # 開発環境設定
 ```
@@ -168,16 +224,22 @@ docker compose logs      # ログ確認
 
 ## 特徴的な機能
 
-### 1. リアルタイム依存関係管理
+### 1. モダンなUI/UX
+- **ツールバー**: 直感的な操作ボタンとステータス表示
+- **サイドバー**: テーブル・数式の一覧管理
+- **グリッド**: AG-Grid採用で高性能な表示・編集
+- **数式エディタ**: リアルタイムエラー表示とシンタックスヒント
+
+### 2. リアルタイム依存関係管理
 セルの値が変更されると、そのセルに依存する全てのセルが自動的に再計算されます。
 
-### 2. 循環参照検出
+### 3. 循環参照検出
 トポロジカルソートを使用して循環参照を検出し、エラーを防止します。
 
-### 3. 計算キャッシュ
+### 4. 計算キャッシュ
 Redisを使用して計算結果をキャッシュし、同じ計算の繰り返しを回避します。
 
-### 4. WebSocketリアルタイム更新
+### 5. WebSocketリアルタイム更新
 複数のクライアント間でセルの変更をリアルタイムに同期します。
 
 ## トラブルシューティング
