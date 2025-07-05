@@ -27,7 +27,7 @@ export const FormulaEditor: React.FC<FormulaEditorProps> = ({
       const parsed = parseFormula(formula);
       onSave(parsed);
     } catch (error) {
-      setErrors([error.message]);
+      setErrors([error instanceof Error ? error.message : 'Unknown error']);
     }
   };
 

@@ -13,7 +13,7 @@ export const useFormula = () => {
     };
   };
 
-  const parseExpression = (expr: string) => {
+  const parseExpression = (expr: string): any => {
     // 基本的な数式パーサー
     // 実際の実装では、より複雑な構文解析が必要
     
