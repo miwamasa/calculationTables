@@ -48,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       borderRight: '1px solid #dee2e6',
       height: '100%',
       overflow: 'auto',
+      flexShrink: 0,
       padding: '10px'
     }}>
       {/* 表一覧セクション */}

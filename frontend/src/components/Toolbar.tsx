@@ -10,6 +10,8 @@ interface ToolbarProps {
   onFormulaApplicator?: () => void;
   isFormulaApplicatorOpen?: boolean;
   onCalculationHistory?: () => void;
+  onToggleConsole?: () => void;
+  isConsoleVisible?: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -21,7 +23,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isFormulaEditorOpen,
   onFormulaApplicator,
   isFormulaApplicatorOpen,
-  onCalculationHistory
+  onCalculationHistory,
+  onToggleConsole,
+  isConsoleVisible
 }) => {
   return (
     <div style={{
@@ -153,6 +157,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#17a2b8'}
           >
             📊 計算履歴
+          </button>
+        )}
+
+        {onToggleConsole && (
+          <button
+            onClick={onToggleConsole}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: isConsoleVisible ? '#28a745' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onMouseEnter={(e) => {
+              if (isConsoleVisible) {
+                e.currentTarget.style.backgroundColor = '#218838';
+              } else {
+                e.currentTarget.style.backgroundColor = '#5a6268';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isConsoleVisible ? '#28a745' : '#6c757d';
+            }}
+          >
+            🖥️ コンソール
           </button>
         )}
 

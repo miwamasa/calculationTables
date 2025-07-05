@@ -7,8 +7,10 @@ import { FormulaApplicator } from './components/FormulaApplicator';
 import { FormulaEditorModal } from './components/FormulaEditorModal';
 import { TableEditor } from './components/TableEditor';
 import { CalculationHistory } from './components/CalculationHistory';
+import { Console } from './components/Console';
 import { useTableManagement } from './hooks/useTableManagement';
 import { useTableData } from './hooks/useTableData';
+import { useConsole } from './hooks/useConsole';
 import './App.css';
 
 function App() {
@@ -36,6 +38,15 @@ function App() {
     createSampleData
   } = useTableManagement();
   const { table, cells, loading: tableLoading, updateCell, addRow, deleteRow, refreshData, applyFormulaToCell } = useTableData(selectedTableId);
+  const { 
+    messages, 
+    isVisible: isConsoleVisible, 
+    addSuccess, 
+    addError, 
+    addInfo, 
+    clearMessages, 
+    toggleConsole 
+  } = useConsole();
 
   const selectedTable = tables.find(t => t._id === selectedTableId);
 
@@ -44,13 +55,16 @@ function App() {
     setSelectedTableId(tableId);
     setSelectedCellId('');
     
+    addInfo(`テーブルが選択されました: ${tables.find(t => t._id === tableId)?.name || tableId}`);
+    
     // サンプルデータを作成（データがない場合）
     try {
       console.log('Creating sample data for table:', tableId);
       await createSampleData(tableId);
-      console.log('Sample data created successfully');
+      addSuccess('サンプルデータを作成しました');
     } catch (error) {
       console.error('Error creating sample data:', error);
+      addError('サンプルデータの作成に失敗しました');
     }
   };
 
@@ -65,16 +79,17 @@ function App() {
   const handleAddRow = async () => {
     console.log('handleAddRow called, selectedTableId:', selectedTableId);
     if (!selectedTableId) {
-      console.log('No table selected, cannot add row');
+      addError('テーブルが選択されていません');
       return;
     }
     try {
       console.log('Calling addRow API...');
       const result = await addRow(selectedTableId);
       console.log('Row added successfully:', result);
+      addSuccess('新しい行を追加しました');
     } catch (error) {
       console.error('Error adding row:', error);
-      alert('行の追加に失敗しました');
+      addError('行の追加に失敗しました');
     }
   };
 
@@ -82,18 +97,20 @@ function App() {
     if (!selectedTableId) return;
     try {
       await deleteRow(selectedTableId, rowId);
+      addSuccess(`行 ${rowId} を削除しました`);
     } catch (error) {
       console.error('Error deleting row:', error);
-      alert('行の削除に失敗しました');
+      addError('行の削除に失敗しました');
     }
   };
 
   const handleRefresh = async () => {
     try {
       await refreshData();
+      addSuccess('データを更新しました');
     } catch (error) {
       console.error('Error refreshing data:', error);
-      alert('データの更新に失敗しました');
+      addError('データの更新に失敗しました');
     }
   };
 
@@ -215,15 +232,15 @@ function App() {
       // 成功メッセージに計算結果を表示
       const formula = formulas.find(f => f._id === formulaId);
       const formulaName = formula ? formula.name : '数式';
-      alert(`${formulaName}が適用されました！\n計算結果: ${result.value}`);
+      addSuccess(`${formulaName}を適用しました (${rowId}:${columnId}) → 結果: ${result.value}`);
     } catch (error) {
       console.error('Error applying formula:', error);
-      alert('数式の適用に失敗しました');
+      addError('数式の適用に失敗しました');
     }
   };
 
   const handleSettings = () => {
-    alert('設定機能は今後実装予定です');
+    addInfo('設定機能は今後実装予定です');
   };
 
   const handleEditTable = (tableId: string) => {
@@ -272,6 +289,8 @@ function App() {
         onFormulaApplicator={() => setShowFormulaApplicator(!showFormulaApplicator)}
         isFormulaApplicatorOpen={showFormulaApplicator}
         onCalculationHistory={() => setShowCalculationHistory(true)}
+        onToggleConsole={toggleConsole}
+        isConsoleVisible={isConsoleVisible}
       />
 
       {/* メインエリア */}
@@ -293,9 +312,13 @@ function App() {
         />
 
         {/* 表ビューエリア */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* 表グリッド */}
-          <div style={{ flex: 1 }}>
+          <div style={{ 
+            flex: isConsoleVisible ? '1 1 60%' : '1 1 auto', 
+            minHeight: '300px',
+            overflow: 'hidden'
+          }}>
             <SimpleTableGrid
               table={table}
               cells={cells}
@@ -324,6 +347,22 @@ function App() {
             onApplyFormula={handleApplyFormula}
             isVisible={showFormulaApplicator}
           />
+
+          {/* コンソール */}
+          {isConsoleVisible && (
+            <div style={{ 
+              flex: '0 0 220px',
+              padding: '10px',
+              borderTop: '1px solid #dee2e6'
+            }}>
+              <Console
+                messages={messages}
+                isVisible={isConsoleVisible}
+                onToggle={toggleConsole}
+                onClear={clearMessages}
+              />
+            </div>
+          )}
         </div>
       </div>
 

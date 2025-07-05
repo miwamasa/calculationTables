@@ -62,6 +62,7 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnId: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [isComposing, setIsComposing] = useState<boolean>(false);
 
   console.log('SimpleTableGrid render - cells:', cells.length, 'cells data:', cells);
 
@@ -160,17 +161,13 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
             return (
               <input
                 type={col.type === 'number' ? 'number' : 'text'}
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={() => {
-                  const newValue = col.type === 'number' ? parseFloat(editValue) || 0 : editValue;
-                  onCellEdit(table._id, row.original.id, column.id, newValue);
-                  setEditingCell(null);
-                  setEditValue('');
-                }}
+                defaultValue={value || ''}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const newValue = col.type === 'number' ? parseFloat(editValue) || 0 : editValue;
+                  if (e.key === 'Enter' && !isComposing) {
+                    const inputValue = (e.target as HTMLInputElement).value;
+                    const newValue = col.type === 'number' ? parseFloat(inputValue) || 0 : inputValue;
                     onCellEdit(table._id, row.original.id, column.id, newValue);
                     setEditingCell(null);
                     setEditValue('');
@@ -179,11 +176,19 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
                     setEditValue('');
                   }
                 }}
+                onBlur={(e) => {
+                  const inputValue = e.target.value;
+                  const newValue = col.type === 'number' ? parseFloat(inputValue) || 0 : inputValue;
+                  onCellEdit(table._id, row.original.id, column.id, newValue);
+                  setEditingCell(null);
+                  setEditValue('');
+                }}
                 autoFocus
                 style={{
                   width: '100%',
                   border: '2px solid #007bff',
-                  padding: '4px'
+                  padding: '4px',
+                  fontFamily: 'Noto Sans JP, Yu Gothic, Meiryo, sans-serif'
                 }}
               />
             );
@@ -311,7 +316,8 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
         flex: 1, 
         overflow: 'auto',
         border: '1px solid #e9ecef',
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        padding: '0 20px 20px 0'
       }}>
         <table style={{ 
           width: '100%', 
