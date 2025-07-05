@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const WebSocketHandler = require('./websocket/handler');
 const FormulaEngine = require('./engine/FormulaEngine');
+const apiRoutes = require('./routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +29,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/spreadshe
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
+
+// API routes
+app.use('/api', apiRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
