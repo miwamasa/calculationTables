@@ -31,6 +31,7 @@ export const useTableData = (tableId: string | null) => {
   useEffect(() => {
     const fetchData = async () => {
       if (!tableId) {
+        console.log('No tableId provided');
         setTable(null);
         setCells([]);
         setLoading(false);
@@ -38,16 +39,32 @@ export const useTableData = (tableId: string | null) => {
       }
 
       try {
+        console.log('Fetching data for table:', tableId);
         setLoading(true);
+        
+        const tableUrl = `${apiUrl}/api/tables/${tableId}`;
+        const cellsUrl = `${apiUrl}/api/tables/${tableId}/cells`;
+        
+        console.log('Table URL:', tableUrl);
+        console.log('Cells URL:', cellsUrl);
+        
         const [tableResponse, cellsResponse] = await Promise.all([
-          axios.get(`${apiUrl}/api/tables/${tableId}`),
-          axios.get(`${apiUrl}/api/tables/${tableId}/cells`)
+          axios.get(tableUrl),
+          axios.get(cellsUrl)
         ]);
+
+        console.log('Table response:', tableResponse.data);
+        console.log('Cells response:', cellsResponse.data);
 
         setTable(tableResponse.data);
         setCells(cellsResponse.data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error fetching table data:', error);
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as any;
+          console.error('Response status:', axiosError.response?.status);
+          console.error('Response data:', axiosError.response?.data);
+        }
         setTable(null);
         setCells([]);
       } finally {
@@ -93,7 +110,7 @@ export const useTableData = (tableId: string | null) => {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating cell:', error);
       throw error;
     }

@@ -110,40 +110,47 @@ class CellController {
   async createSampleData(req, res) {
     try {
       const { tableId } = req.params;
+      const Table = require('../models/Table');
+      
+      // テーブル情報を取得
+      const table = await Table.findById(tableId);
+      if (!table) {
+        return res.status(404).json({ error: 'Table not found' });
+      }
       
       // 既存のセルを削除
       await Cell.deleteMany({ table_id: tableId });
       
-      // サンプルデータを作成
+      // テーブルの列情報を使用してサンプルデータを作成
       const sampleCells = [];
       for (let row = 1; row <= 5; row++) {
-        for (let col = 1; col <= 4; col++) {
-          const columnId = `col_${col}`;
+        table.columns.forEach((column, colIndex) => {
           let value = '';
-          let type = 'string';
+          let type = column.type;
           
-          if (col === 1) {
+          if (column.type === 'string') {
             value = `商品${row}`;
-            type = 'string';
-          } else if (col === 2) {
-            value = 1000 + (row * 100);
-            type = 'number';
-          } else if (col === 3) {
-            value = row * 2;
-            type = 'number';
-          } else if (col === 4) {
+          } else if (column.type === 'number') {
+            if (colIndex === 1) { // 単価
+              value = 1000 + (row * 100);
+            } else if (colIndex === 2) { // 数量
+              value = row * 2;
+            } else if (colIndex === 3) { // 合計
+              value = (1000 + (row * 100)) * (row * 2);
+            }
+          } else if (column.type === 'formula') {
             value = (1000 + (row * 100)) * (row * 2);
-            type = 'number';
+            type = 'number'; // 計算結果は数値
           }
           
           sampleCells.push({
             table_id: tableId,
             row_id: `row_${row}`,
-            column_id: columnId,
+            column_id: column.id,
             value: value,
             type: type
           });
-        }
+        });
       }
       
       const createdCells = await Cell.insertMany(sampleCells);

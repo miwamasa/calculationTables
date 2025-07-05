@@ -46,7 +46,12 @@ export const TableGrid: React.FC<TableGridProps> = ({
 
   // セルデータをグリッド用の行データに変換
   useEffect(() => {
+    console.log('TableGrid effect triggered');
+    console.log('Table:', table);
+    console.log('Cells:', cells);
+    
     if (!table) {
+      console.log('No table, setting empty row data');
       setRowData([]);
       return;
     }
@@ -60,6 +65,8 @@ export const TableGrid: React.FC<TableGridProps> = ({
       }
       rowsMap.get(cell.row_id)![cell.column_id] = cell.value;
     });
+
+    console.log('Rows map after processing cells:', Array.from(rowsMap.entries()));
 
     // 空の行データがない場合は、少なくとも10行の空行を作成
     const existingRows = Array.from(rowsMap.values());
@@ -76,7 +83,9 @@ export const TableGrid: React.FC<TableGridProps> = ({
       }
     }
 
-    setRowData(Array.from(rowsMap.values()));
+    const finalRowData = Array.from(rowsMap.values());
+    console.log('Final row data to be set:', finalRowData);
+    setRowData(finalRowData);
   }, [table, cells]);
 
   const onGridReady = (params: GridReadyEvent) => {
@@ -155,6 +164,9 @@ export const TableGrid: React.FC<TableGridProps> = ({
         <div style={{ fontSize: '48px', marginBottom: '20px' }}>📊</div>
         <div style={{ fontSize: '18px', marginBottom: '10px' }}>表を選択してください</div>
         <div style={{ fontSize: '14px' }}>サイドバーから既存の表を選択するか、新しい表を作成してください</div>
+        <div style={{ fontSize: '12px', marginTop: '20px', color: '#dc3545' }}>
+          デバッグ: テーブルデータが null です。ブラウザのコンソールログを確認してください。
+        </div>
       </div>
     );
   }

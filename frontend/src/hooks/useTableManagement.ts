@@ -33,18 +33,27 @@ export const useTableManagement = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('Fetching tables and formulas from:', apiUrl);
         setLoading(true);
         const [tablesResponse, formulasResponse] = await Promise.all([
           axios.get(`${apiUrl}/api/tables`),
           axios.get(`${apiUrl}/api/formulas`)
         ]);
 
+        console.log('Tables fetched:', tablesResponse.data);
+        console.log('Formulas fetched:', formulasResponse.data);
+
         setTables(tablesResponse.data);
         setFormulas(formulasResponse.data);
         setError(null);
-      } catch (err) {
+      } catch (err: unknown) {
         setError('データの取得に失敗しました');
         console.error('Error fetching data:', err);
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosError = err as any;
+          console.error('Response status:', axiosError.response?.status);
+          console.error('Response data:', axiosError.response?.data);
+        }
       } finally {
         setLoading(false);
       }
@@ -69,7 +78,7 @@ export const useTableManagement = () => {
       const response = await axios.post(`${apiUrl}/api/tables`, tableData);
       setTables(prev => [...prev, response.data]);
       return response.data;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error creating table:', err);
       throw err;
     }
@@ -87,7 +96,7 @@ export const useTableManagement = () => {
       const response = await axios.post(`${apiUrl}/api/formulas`, formulaData);
       setFormulas(prev => [...prev, response.data]);
       return response.data;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error creating formula:', err);
       throw err;
     }
@@ -101,7 +110,7 @@ export const useTableManagement = () => {
         table._id === tableId ? response.data : table
       ));
       return response.data;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error updating table:', err);
       throw err;
     }
@@ -112,7 +121,7 @@ export const useTableManagement = () => {
     try {
       await axios.delete(`${apiUrl}/api/tables/${tableId}`);
       setTables(prev => prev.filter(table => table._id !== tableId));
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error deleting table:', err);
       throw err;
     }
@@ -123,7 +132,7 @@ export const useTableManagement = () => {
     try {
       const response = await axios.post(`${apiUrl}/api/tables/${tableId}/sample-data`);
       return response.data;
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error creating sample data:', err);
       throw err;
     }

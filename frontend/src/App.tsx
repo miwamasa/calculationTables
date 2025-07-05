@@ -30,12 +30,15 @@ function App() {
   const selectedTable = tables.find(t => t._id === selectedTableId);
 
   const handleTableSelect = async (tableId: string) => {
+    console.log('Table selected:', tableId);
     setSelectedTableId(tableId);
     setSelectedCellId('');
     
     // サンプルデータを作成（データがない場合）
     try {
+      console.log('Creating sample data for table:', tableId);
       await createSampleData(tableId);
+      console.log('Sample data created successfully');
     } catch (error) {
       console.error('Error creating sample data:', error);
     }
