@@ -1,7 +1,7 @@
 import React from 'react';
 import { Toolbar } from './components/Toolbar';
 import { Sidebar } from './components/Sidebar';
-import { TableGrid } from './components/TableGrid';
+import { SimpleTableGrid } from './components/SimpleTableGrid';
 import { FormulaEditor } from './components/FormulaEditor';
 import { TableEditor } from './components/TableEditor';
 import { useTableManagement } from './hooks/useTableManagement';
@@ -25,7 +25,7 @@ function App() {
     deleteTable,
     createSampleData
   } = useTableManagement();
-  const { table, cells, loading: tableLoading, updateCell } = useTableData(selectedTableId);
+  const { table, cells, loading: tableLoading, updateCell, addRow, deleteRow, refreshData } = useTableData(selectedTableId);
 
   const selectedTable = tables.find(t => t._id === selectedTableId);
 
@@ -49,6 +49,41 @@ function App() {
       await updateCell(tableId, rowId, columnId, newValue);
     } catch (error) {
       console.error('Error updating cell:', error);
+    }
+  };
+
+  const handleAddRow = async () => {
+    console.log('handleAddRow called, selectedTableId:', selectedTableId);
+    if (!selectedTableId) {
+      console.log('No table selected, cannot add row');
+      return;
+    }
+    try {
+      console.log('Calling addRow API...');
+      const result = await addRow(selectedTableId);
+      console.log('Row added successfully:', result);
+    } catch (error) {
+      console.error('Error adding row:', error);
+      alert('行の追加に失敗しました');
+    }
+  };
+
+  const handleDeleteRow = async (rowId: string) => {
+    if (!selectedTableId) return;
+    try {
+      await deleteRow(selectedTableId, rowId);
+    } catch (error) {
+      console.error('Error deleting row:', error);
+      alert('行の削除に失敗しました');
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await refreshData();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      alert('データの更新に失敗しました');
     }
   };
 
@@ -175,11 +210,14 @@ function App() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {/* 表グリッド */}
           <div style={{ flex: 1 }}>
-            <TableGrid
+            <SimpleTableGrid
               table={table}
               cells={cells}
               onCellEdit={handleCellEdit}
               onCellSelect={handleCellSelect}
+              onAddRow={handleAddRow}
+              onDeleteRow={handleDeleteRow}
+              onRefresh={handleRefresh}
               loading={tableLoading}
             />
           </div>

@@ -116,10 +116,73 @@ export const useTableData = (tableId: string | null) => {
     }
   };
 
+  const addRow = async (tableId: string) => {
+    try {
+      console.log('addRow called with tableId:', tableId);
+      console.log('API URL:', `${apiUrl}/api/tables/${tableId}/rows`);
+      
+      const response = await axios.post(`${apiUrl}/api/tables/${tableId}/rows`);
+      console.log('addRow API response:', response.data);
+      
+      const newCells = response.data;
+      
+      setCells(prevCells => {
+        const updatedCells = [...prevCells, ...newCells];
+        console.log('Updated cells after row addition:', updatedCells.length);
+        return updatedCells;
+      });
+      
+      return newCells;
+    } catch (error: unknown) {
+      console.error('Error adding row:', error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        console.error('Response status:', axiosError.response?.status);
+        console.error('Response data:', axiosError.response?.data);
+      }
+      throw error;
+    }
+  };
+
+  const deleteRow = async (tableId: string, rowId: string) => {
+    try {
+      await axios.delete(`${apiUrl}/api/tables/${tableId}/rows/${rowId}`);
+      
+      setCells(prevCells => prevCells.filter(cell => 
+        !(cell.table_id === tableId && cell.row_id === rowId)
+      ));
+    } catch (error: unknown) {
+      console.error('Error deleting row:', error);
+      throw error;
+    }
+  };
+
+  const refreshData = async () => {
+    if (tableId) {
+      try {
+        setLoading(true);
+        const [tableResponse, cellsResponse] = await Promise.all([
+          axios.get(`${apiUrl}/api/tables/${tableId}`),
+          axios.get(`${apiUrl}/api/tables/${tableId}/cells`)
+        ]);
+        
+        setTable(tableResponse.data);
+        setCells(cellsResponse.data);
+      } catch (error: unknown) {
+        console.error('Error refreshing data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return {
     table,
     cells,
     loading,
-    updateCell
+    updateCell,
+    addRow,
+    deleteRow,
+    refreshData
   };
 };
