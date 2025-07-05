@@ -127,6 +127,31 @@ export const useTableManagement = () => {
     }
   };
 
+  // 数式削除
+  const deleteFormula = async (formulaId: string) => {
+    try {
+      await axios.delete(`${apiUrl}/api/formulas/${formulaId}`);
+      setFormulas(prev => prev.filter(formula => formula._id !== formulaId));
+    } catch (err: unknown) {
+      console.error('Error deleting formula:', err);
+      throw err;
+    }
+  };
+
+  // 数式更新
+  const updateFormula = async (formulaId: string, updates: Partial<Formula>) => {
+    try {
+      const response = await axios.put(`${apiUrl}/api/formulas/${formulaId}`, updates);
+      setFormulas(prev => prev.map(formula => 
+        formula._id === formulaId ? response.data : formula
+      ));
+      return response.data;
+    } catch (err: unknown) {
+      console.error('Error updating formula:', err);
+      throw err;
+    }
+  };
+
   // サンプルデータ作成
   const createSampleData = async (tableId: string) => {
     try {
@@ -147,6 +172,8 @@ export const useTableManagement = () => {
     createFormula,
     updateTable,
     deleteTable,
+    deleteFormula,
+    updateFormula,
     createSampleData
   };
 };

@@ -210,6 +210,94 @@ class CellController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  async applyFormulaToCell(req, res) {
+    try {
+      const { tableId, rowId, columnId } = req.params;
+      const { formulaId } = req.body;
+      
+      const Formula = require('../models/Formula');
+      const Table = require('../models/Table');
+      
+      // 数式とテーブル情報を取得
+      const [formula, table] = await Promise.all([
+        Formula.findById(formulaId),
+        Table.findById(tableId)
+      ]);
+      
+      if (!formula) {
+        return res.status(404).json({ error: 'Formula not found' });
+      }
+      
+      if (!table) {
+        return res.status(404).json({ error: 'Table not found' });
+      }
+      
+      // 同じ行の他のセルデータを取得
+      const rowCells = await Cell.find({ 
+        table_id: tableId, 
+        row_id: rowId 
+      });
+      
+      // 数式を計算
+      const result = await this.calculateFormula(formula.expression, rowCells, table);
+      
+      // セルを更新
+      const cell = await Cell.findOneAndUpdate(
+        { table_id: tableId, row_id: rowId, column_id: columnId },
+        { 
+          value: result,
+          type: 'number',
+          formula_id: formulaId,
+          updated_at: new Date() 
+        },
+        { new: true, upsert: true }
+      );
+      
+      res.json(cell);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async calculateFormula(expression, rowCells, table) {
+    // シンプルな数式計算エンジン
+    switch (expression.type) {
+      case 'add':
+        return this.calculateOperands(expression.operands, rowCells, table)
+          .reduce((sum, val) => sum + val, 0);
+      
+      case 'subtract':
+        const subtractValues = this.calculateOperands(expression.operands, rowCells, table);
+        return subtractValues.reduce((result, val, index) => 
+          index === 0 ? val : result - val
+        );
+      
+      case 'multiply':
+        return this.calculateOperands(expression.operands, rowCells, table)
+          .reduce((product, val) => product * val, 1);
+      
+      case 'divide':
+        const divideValues = this.calculateOperands(expression.operands, rowCells, table);
+        return divideValues.reduce((result, val, index) => 
+          index === 0 ? val : result / val
+        );
+      
+      case 'constant':
+        return expression.value;
+      
+      case 'cell_reference':
+        const cell = rowCells.find(c => c.column_id === expression.column);
+        return cell ? parseFloat(cell.value) || 0 : 0;
+      
+      default:
+        throw new Error(`Unknown expression type: ${expression.type}`);
+    }
+  }
+
+  calculateOperands(operands, rowCells, table) {
+    return operands.map(operand => this.calculateFormula(operand, rowCells, table));
+  }
 }
 
 module.exports = new CellController();

@@ -7,6 +7,8 @@ interface ToolbarProps {
   onSettings: () => void;
   onFormulaEditor: () => void;
   isFormulaEditorOpen: boolean;
+  onFormulaApplicator?: () => void;
+  isFormulaApplicatorOpen?: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -15,7 +17,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onNewTable,
   onSettings,
   onFormulaEditor,
-  isFormulaEditorOpen
+  isFormulaEditorOpen,
+  onFormulaApplicator,
+  isFormulaApplicatorOpen
 }) => {
   return (
     <div style={{
@@ -103,6 +107,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           🧮 数式エディタ
         </button>
+
+        {onFormulaApplicator && (
+          <button
+            onClick={onFormulaApplicator}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: isFormulaApplicatorOpen ? '#28a745' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onMouseEnter={(e) => {
+              if (isFormulaApplicatorOpen) {
+                e.currentTarget.style.backgroundColor = '#218838';
+              } else {
+                e.currentTarget.style.backgroundColor = '#5a6268';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isFormulaApplicatorOpen ? '#28a745' : '#6c757d';
+            }}
+          >
+            ⚡ 数式適用
+          </button>
+        )}
 
         <button
           onClick={onSettings}

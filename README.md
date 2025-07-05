@@ -86,6 +86,42 @@ cd frontend && npm start
 4. グリッドでセル編集（ダブルクリックまたはF2キー）
 5. 「🧮 数式エディタ」でセルに数式を追加
 
+### 数式の作成と適用
+
+#### 数式の作成方法
+1. サイドバーの「数式一覧」セクションで「+ 新規」をクリック
+2. 数式名と説明を入力
+3. JSON形式で数式を定義（例: 単価×数量）
+```json
+{
+  "type": "multiply",
+  "operands": [
+    {"type": "cell_reference", "column": "price"},
+    {"type": "cell_reference", "column": "quantity"}
+  ]
+}
+```
+4. 「作成」ボタンで保存
+
+#### 数式をセルに適用する方法
+1. 表ビューで数式を適用したいセルをクリックして選択
+2. ツールバーの「⚡ 数式適用」ボタンをクリック
+3. 適用したい数式をドロップダウンから選択
+4. 「✅ 適用」ボタンをクリック
+5. 数式が計算されて結果が表示される
+
+#### 数式の編集・削除
+- サイドバーの数式一覧で「編集」ボタンをクリックして修正
+- 「削除」ボタンで不要な数式を削除
+
+#### 対応する数式タイプ
+- **add**: 加算（足し算）
+- **subtract**: 減算（引き算）
+- **multiply**: 乗算（掛け算）
+- **divide**: 除算（割り算）
+- **constant**: 定数値
+- **cell_reference**: セル参照
+
 ### キーボードショートカット
 - **F2**: 選択セルの数式編集モード
 - **Tab**: 次のセルに移動
@@ -162,6 +198,13 @@ curl -X POST http://localhost:3001/api/formulas \
 }
 ```
 
+### 数式をセルに適用
+```bash
+curl -X POST http://localhost:3001/api/tables/{tableId}/cells/{rowId}/{columnId}/apply-formula \
+  -H "Content-Type: application/json" \
+  -d '{"formulaId": "formula_id_here"}'
+```
+
 ## プロジェクト構造
 
 ```
@@ -215,12 +258,25 @@ docker compose logs      # ログ確認
 
 ## API エンドポイント
 
+### 基本操作
 - `GET /health` - ヘルスチェック
 - `POST /api/tables` - テーブル作成
 - `GET /api/tables/:id` - テーブル取得
-- `POST /api/formulas` - 数式作成
-- `PUT /api/cells/:id` - セル値更新
+- `PUT /api/tables/:id` - テーブル更新
+- `DELETE /api/tables/:id` - テーブル削除
+
+### セル操作
 - `GET /api/tables/:id/cells` - テーブルのセル一覧
+- `PUT /api/tables/:tableId/cells/:rowId/:columnId` - セル値更新
+- `POST /api/tables/:tableId/rows` - 行追加
+- `DELETE /api/tables/:tableId/rows/:rowId` - 行削除
+
+### 数式操作
+- `GET /api/formulas` - 数式一覧取得
+- `POST /api/formulas` - 数式作成
+- `PUT /api/formulas/:id` - 数式更新
+- `DELETE /api/formulas/:id` - 数式削除
+- `POST /api/tables/:tableId/cells/:rowId/:columnId/apply-formula` - セルに数式適用
 
 ## 特徴的な機能
 

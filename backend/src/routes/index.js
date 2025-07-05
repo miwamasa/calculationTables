@@ -23,6 +23,7 @@ router.put('/tables/:tableId/cells/:rowId/:columnId', cellController.updateOrCre
 router.post('/tables/:tableId/sample-data', cellController.createSampleData);
 router.post('/tables/:tableId/rows', cellController.addRow);
 router.delete('/tables/:tableId/rows/:rowId', cellController.deleteRow);
+router.post('/tables/:tableId/cells/:rowId/:columnId/apply-formula', cellController.applyFormulaToCell);
 
 // Formula routes
 router.post('/formulas', formulaController.createFormula);

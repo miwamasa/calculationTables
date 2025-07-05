@@ -3,6 +3,8 @@ import { Toolbar } from './components/Toolbar';
 import { Sidebar } from './components/Sidebar';
 import { SimpleTableGrid } from './components/SimpleTableGrid';
 import { FormulaEditor } from './components/FormulaEditor';
+import { FormulaApplicator } from './components/FormulaApplicator';
+import { FormulaEditorModal } from './components/FormulaEditorModal';
 import { TableEditor } from './components/TableEditor';
 import { useTableManagement } from './hooks/useTableManagement';
 import { useTableData } from './hooks/useTableData';
@@ -10,10 +12,14 @@ import './App.css';
 
 function App() {
   const [selectedTableId, setSelectedTableId] = React.useState<string | null>(null);
+  const [selectedFormulaId, setSelectedFormulaId] = React.useState<string | null>(null);
   const [selectedCellId, setSelectedCellId] = React.useState<string>('');
   const [showFormulaEditor, setShowFormulaEditor] = React.useState(false);
+  const [showFormulaApplicator, setShowFormulaApplicator] = React.useState(false);
   const [showTableEditor, setShowTableEditor] = React.useState(false);
+  const [showFormulaEditorModal, setShowFormulaEditorModal] = React.useState(false);
   const [editingTableId, setEditingTableId] = React.useState<string | null>(null);
+  const [editingFormulaId, setEditingFormulaId] = React.useState<string | null>(null);
 
   const { 
     tables, 
@@ -23,9 +29,11 @@ function App() {
     createFormula,
     updateTable,
     deleteTable,
+    deleteFormula,
+    updateFormula,
     createSampleData
   } = useTableManagement();
-  const { table, cells, loading: tableLoading, updateCell, addRow, deleteRow, refreshData } = useTableData(selectedTableId);
+  const { table, cells, loading: tableLoading, updateCell, addRow, deleteRow, refreshData, applyFormulaToCell } = useTableData(selectedTableId);
 
   const selectedTable = tables.find(t => t._id === selectedTableId);
 
@@ -91,8 +99,8 @@ function App() {
     setSelectedCellId(cellId);
   };
 
-  const handleFormulaSave = (formula: any) => {
-    console.log('Formula saved:', formula);
+  const handleFormulaApply = (formula: any) => {
+    console.log('Formula applied to cell:', formula);
     // TODO: セルに数式を適用する処理
   };
 
@@ -124,24 +132,78 @@ function App() {
       });
   };
 
-  const handleNewFormula = () => {
-    const newFormula = {
-      name: `数式 ${formulas.length + 1}`,
-      description: '新しい数式',
-      expression: {
-        type: 'add',
-        operands: [
-          { type: 'constant', value: 1 },
-          { type: 'constant', value: 1 }
-        ]
-      }
-    };
+  const handleFormulaSelect = (formulaId: string) => {
+    console.log('Formula selected:', formulaId);
+    setSelectedFormulaId(formulaId);
+  };
 
-    createFormula(newFormula)
-      .catch(error => {
-        console.error('Error creating formula:', error);
-        alert('数式の作成に失敗しました');
-      });
+  const handleNewFormula = () => {
+    setEditingFormulaId(null);
+    setShowFormulaEditorModal(true);
+  };
+
+  const handleEditFormula = (formulaId: string) => {
+    setEditingFormulaId(formulaId);
+    setShowFormulaEditorModal(true);
+  };
+
+  const handleDeleteFormula = async (formulaId: string) => {
+    try {
+      await deleteFormula(formulaId);
+      if (selectedFormulaId === formulaId) {
+        setSelectedFormulaId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting formula:', error);
+      alert('数式の削除に失敗しました');
+    }
+  };
+
+  const handleFormulaSave = async (formulaData: any) => {
+    try {
+      if (editingFormulaId) {
+        await updateFormula(editingFormulaId, formulaData);
+      } else {
+        await createFormula(formulaData);
+      }
+      setShowFormulaEditorModal(false);
+      setEditingFormulaId(null);
+    } catch (error) {
+      console.error('Error saving formula:', error);
+      alert('数式の保存に失敗しました');
+    }
+  };
+
+  const handleFormulaCancel = () => {
+    setShowFormulaEditorModal(false);
+    setEditingFormulaId(null);
+  };
+
+  const handleApplyFormula = async (formulaId: string, cellId: string) => {
+    if (!selectedTableId) return;
+    
+    try {
+      // cellIdから tableId, rowId, columnId を抽出
+      const parts = cellId.split('_');
+      if (parts.length < 3) {
+        alert('無効なセルIDです');
+        return;
+      }
+      
+      const rowId = parts[1];
+      const columnId = parts[2];
+      
+      console.log('Applying formula:', { formulaId, tableId: selectedTableId, rowId, columnId });
+      
+      await applyFormulaToCell(selectedTableId, rowId, columnId, formulaId);
+      console.log('Formula applied successfully');
+      
+      // 成功メッセージ
+      alert('数式が適用されました！');
+    } catch (error) {
+      console.error('Error applying formula:', error);
+      alert('数式の適用に失敗しました');
+    }
   };
 
   const handleSettings = () => {
@@ -179,6 +241,7 @@ function App() {
   };
 
   const editingTable = editingTableId ? tables.find(t => t._id === editingTableId) : null;
+  const editingFormula = editingFormulaId ? formulas.find(f => f._id === editingFormulaId) : null;
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -190,6 +253,8 @@ function App() {
         onSettings={handleSettings}
         onFormulaEditor={() => setShowFormulaEditor(!showFormulaEditor)}
         isFormulaEditorOpen={showFormulaEditor}
+        onFormulaApplicator={() => setShowFormulaApplicator(!showFormulaApplicator)}
+        isFormulaApplicatorOpen={showFormulaApplicator}
       />
 
       {/* メインエリア */}
@@ -199,11 +264,15 @@ function App() {
           tables={tables}
           formulas={formulas}
           selectedTableId={selectedTableId}
+          selectedFormulaId={selectedFormulaId}
           onTableSelect={handleTableSelect}
+          onFormulaSelect={handleFormulaSelect}
           onNewTable={handleNewTable}
           onNewFormula={handleNewFormula}
           onDeleteTable={handleDeleteTable}
           onEditTable={handleEditTable}
+          onDeleteFormula={handleDeleteFormula}
+          onEditFormula={handleEditFormula}
         />
 
         {/* 表ビューエリア */}
@@ -226,8 +295,16 @@ function App() {
           <FormulaEditor
             cellId={selectedCellId || '未選択'}
             initialFormula="=A1*B1"
-            onSave={handleFormulaSave}
+            onSave={handleFormulaApply}
             isVisible={showFormulaEditor}
+          />
+
+          {/* 数式適用器 */}
+          <FormulaApplicator
+            formulas={formulas}
+            selectedCellId={selectedCellId || '未選択'}
+            onApplyFormula={handleApplyFormula}
+            isVisible={showFormulaApplicator}
           />
         </div>
       </div>
@@ -245,6 +322,14 @@ function App() {
           }}
         />
       )}
+
+      {/* 数式エディタモーダル */}
+      <FormulaEditorModal
+        formula={editingFormula || null}
+        isOpen={showFormulaEditorModal}
+        onSave={handleFormulaSave}
+        onCancel={handleFormulaCancel}
+      />
     </div>
   );
 }

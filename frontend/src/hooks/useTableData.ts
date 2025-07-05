@@ -176,6 +176,56 @@ export const useTableData = (tableId: string | null) => {
     }
   };
 
+  const applyFormulaToCell = async (tableId: string, rowId: string, columnId: string, formulaId: string) => {
+    try {
+      console.log('Applying formula to cell:', { tableId, rowId, columnId, formulaId });
+      
+      const response = await axios.post(
+        `${apiUrl}/api/tables/${tableId}/cells/${rowId}/${columnId}/apply-formula`,
+        { formulaId }
+      );
+      
+      console.log('Formula applied successfully:', response.data);
+      
+      // ローカル状態を更新
+      setCells(prevCells => {
+        const updatedCells = prevCells.map(cell => 
+          cell.table_id === tableId && cell.row_id === rowId && cell.column_id === columnId
+            ? { ...cell, value: response.data.value, formula_id: formulaId }
+            : cell
+        );
+        
+        // セルが存在しない場合は新規追加
+        const cellExists = prevCells.some(cell => 
+          cell.table_id === tableId && cell.row_id === rowId && cell.column_id === columnId
+        );
+        
+        if (!cellExists) {
+          updatedCells.push({
+            _id: response.data._id,
+            table_id: tableId,
+            row_id: rowId,
+            column_id: columnId,
+            value: response.data.value,
+            type: 'number'
+          });
+        }
+        
+        return updatedCells;
+      });
+      
+      return response.data;
+    } catch (error: unknown) {
+      console.error('Error applying formula to cell:', error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        console.error('Response status:', axiosError.response?.status);
+        console.error('Response data:', axiosError.response?.data);
+      }
+      throw error;
+    }
+  };
+
   return {
     table,
     cells,
@@ -183,6 +233,7 @@ export const useTableData = (tableId: string | null) => {
     updateCell,
     addRow,
     deleteRow,
-    refreshData
+    refreshData,
+    applyFormulaToCell
   };
 };

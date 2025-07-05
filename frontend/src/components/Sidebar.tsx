@@ -16,22 +16,30 @@ interface SidebarProps {
   tables: Table[];
   formulas: Formula[];
   selectedTableId: string | null;
+  selectedFormulaId?: string | null;
   onTableSelect: (tableId: string) => void;
+  onFormulaSelect?: (formulaId: string) => void;
   onNewTable: () => void;
   onNewFormula: () => void;
   onDeleteTable: (tableId: string) => void;
   onEditTable: (tableId: string) => void;
+  onDeleteFormula?: (formulaId: string) => void;
+  onEditFormula?: (formulaId: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   tables,
   formulas,
   selectedTableId,
+  selectedFormulaId,
   onTableSelect,
+  onFormulaSelect,
   onNewTable,
   onNewFormula,
   onDeleteTable,
-  onEditTable
+  onEditTable,
+  onDeleteFormula,
+  onEditFormula
 }) => {
   return (
     <div style={{
@@ -206,22 +214,84 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div
                 key={formula._id}
                 style={{
-                  padding: '8px 12px',
                   marginBottom: '4px',
-                  backgroundColor: 'white',
+                  backgroundColor: selectedFormulaId === formula._id ? '#e8f5e8' : 'white',
                   border: '1px solid #dee2e6',
                   borderRadius: '4px',
-                  cursor: 'pointer'
+                  transition: 'background-color 0.2s'
                 }}
               >
-                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                  {formula.name}
-                </div>
-                {formula.description && (
-                  <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
-                    {formula.description}
+                <div
+                  onClick={() => onFormulaSelect?.(formula._id)}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedFormulaId !== formula._id) {
+                      e.currentTarget.parentElement!.style.backgroundColor = '#f5f5f5';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedFormulaId !== formula._id) {
+                      e.currentTarget.parentElement!.style.backgroundColor = 'white';
+                    }
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                    {formula.name}
                   </div>
-                )}
+                  {formula.description && (
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
+                      {formula.description}
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderTop: '1px solid #dee2e6'
+                }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditFormula?.(formula._id);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    編集
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`「${formula.name}」を削除しますか？`)) {
+                        onDeleteFormula?.(formula._id);
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    削除
+                  </button>
+                </div>
               </div>
             ))
           )}
