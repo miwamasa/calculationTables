@@ -28,6 +28,7 @@ interface Cell {
   column_id: string;
   value: any;
   type: string;
+  formula_id?: string;
 }
 
 interface TableData {
@@ -38,6 +39,7 @@ interface TableData {
 interface SimpleTableGridProps {
   table: Table | null;
   cells: Cell[];
+  formulas: any[];
   onCellEdit: (tableId: string, rowId: string, columnId: string, newValue: any) => void;
   onCellSelect: (cellId: string) => void;
   onAddRow: () => void;
@@ -49,6 +51,7 @@ interface SimpleTableGridProps {
 export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
   table,
   cells,
+  formulas,
   onCellEdit,
   onCellSelect,
   onAddRow,
@@ -59,6 +62,8 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnId: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+
+  console.log('SimpleTableGrid render - cells:', cells.length, 'cells data:', cells);
 
   // セルデータを行データに変換
   const rowData = useMemo(() => {
@@ -72,17 +77,20 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
     const rowsMap = new Map<string, TableData>();
     
     cells.forEach(cell => {
+      console.log('Processing cell:', cell);
       if (!rowsMap.has(cell.row_id)) {
         rowsMap.set(cell.row_id, { id: cell.row_id });
       }
       rowsMap.get(cell.row_id)![cell.column_id] = cell.value;
     });
 
-    // 空の行がない場合は、少なくとも5行の空行を作成
+    // 既存の行データを取得
     const existingRows = Array.from(rowsMap.values());
+    
+    // 空の行がない場合は、少なくとも5行の空行を作成（ただし、既存データを上書きしない）
     const totalRows = Math.max(existingRows.length, 5);
     
-    for (let i = existingRows.length + 1; i <= totalRows; i++) {
+    for (let i = 1; i <= totalRows; i++) {
       const rowId = `row_${i}`;
       if (!rowsMap.has(rowId)) {
         const emptyRow: TableData = { id: rowId };
@@ -93,7 +101,12 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
       }
     }
 
-    const finalRowData = Array.from(rowsMap.values());
+    const finalRowData = Array.from(rowsMap.values()).sort((a, b) => {
+      const aNum = parseInt(a.id.replace('row_', ''));
+      const bNum = parseInt(b.id.replace('row_', ''));
+      return aNum - bNum;
+    });
+    
     console.log('Final row data:', finalRowData);
     return finalRowData;
   }, [table, cells]);
@@ -176,6 +189,13 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
             );
           }
 
+          // セルに適用された数式を取得
+          const cellData = cells.find(cell => 
+            cell.row_id === row.original.id && cell.column_id === column.id
+          );
+          const hasFormula = cellData?.formula_id;
+          const formulaInfo = hasFormula ? formulas.find(f => f._id === cellData.formula_id) : null;
+
           return (
             <div
               onClick={() => {
@@ -186,16 +206,32 @@ export const SimpleTableGrid: React.FC<SimpleTableGridProps> = ({
               style={{
                 padding: '4px 8px',
                 cursor: 'pointer',
-                backgroundColor: col.type === 'formula' ? '#f8f9fa' : 'transparent',
+                backgroundColor: hasFormula ? '#e8f5e8' : (col.type === 'formula' ? '#f8f9fa' : 'transparent'),
                 fontStyle: col.type === 'formula' ? 'italic' : 'normal',
                 minHeight: '24px',
-                border: '1px solid transparent'
+                border: hasFormula ? '1px solid #28a745' : '1px solid transparent',
+                position: 'relative'
               }}
+              title={hasFormula ? `数式が適用されています: ${formulaInfo?.name || 'Unknown'}` : undefined}
             >
               {col.format === 'currency' && value ? 
                 `¥${Number(value).toLocaleString()}` : 
                 String(value || '')
               }
+              {hasFormula && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    fontSize: '10px',
+                    color: '#28a745',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  f
+                </span>
+              )}
             </div>
           );
         },

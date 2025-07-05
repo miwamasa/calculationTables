@@ -10,11 +10,13 @@
 ⚡ **高性能**: Redisキャッシュによる高速計算とWebSocketリアルタイム更新  
 🏗️ **スケーラブル**: MongoDB + Express + React + TypeScriptの堅牢な構成  
 🎨 **モダンUI**: システム設計に基づいた直感的なユーザーインターフェース  
+📈 **計算履歴**: 数式適用履歴の記録・トレース機能  
+🎯 **視覚的表示**: 数式適用セルの視覚的識別と情報表示  
 
 ## 技術スタック
 
 - **Backend**: Node.js, Express, MongoDB, Redis, Socket.IO
-- **Frontend**: React, TypeScript, AG-Grid
+- **Frontend**: React, TypeScript, TanStack React Table
 - **Infrastructure**: Docker, Docker Compose
 
 ## UI/UX設計
@@ -41,8 +43,9 @@
 
 - **Toolbar**: システム全体の操作ボタンと選択中テーブルの表示
 - **Sidebar**: テーブル一覧、数式一覧、履歴の管理
-- **TableGrid**: AG-Gridベースの編集可能なスプレッドシート
+- **TableGrid**: TanStack React Tableベースの編集可能なスプレッドシート
 - **FormulaEditor**: 数式入力・編集用のエディタ（シンタックスハイライト対応）
+- **CalculationHistory**: 数式適用履歴の表示・管理
 
 ## クイックスタート
 
@@ -109,6 +112,13 @@ cd frontend && npm start
 3. 適用したい数式をドロップダウンから選択
 4. 「✅ 適用」ボタンをクリック
 5. 数式が計算されて結果が表示される
+6. 数式が適用されたセルは緑色の背景と「f」アイコンで識別される
+
+#### 計算履歴の確認
+1. ツールバーの「📊 計算履歴」ボタンをクリック
+2. 過去の数式適用履歴を時系列で確認
+3. 各履歴にはセル位置、数式名、計算式、結果、適用日時が表示される
+4. 数式が適用されたセルにマウスをホバーすると数式名が表示される
 
 #### 数式の編集・削除
 - サイドバーの数式一覧で「編集」ボタンをクリックして修正
@@ -224,10 +234,12 @@ calculationTables/
 ├── frontend/               # React フロントエンド
 │   ├── src/
 │   │   ├── components/     # UIコンポーネント
-│   │   │   ├── Toolbar.tsx       # ツールバー
-│   │   │   ├── Sidebar.tsx       # サイドバー
-│   │   │   ├── TableGrid.tsx     # 表グリッド
-│   │   │   └── FormulaEditor.tsx # 数式エディタ
+│   │   │   ├── Toolbar.tsx            # ツールバー
+│   │   │   ├── Sidebar.tsx            # サイドバー
+│   │   │   ├── SimpleTableGrid.tsx    # 表グリッド
+│   │   │   ├── FormulaEditor.tsx      # 数式エディタ
+│   │   │   ├── FormulaApplicator.tsx  # 数式適用器
+│   │   │   └── CalculationHistory.tsx # 計算履歴表示
 │   │   ├── hooks/          # カスタムフック
 │   │   │   ├── useTableManagement.ts  # テーブル管理
 │   │   │   ├── useTableData.ts        # テーブルデータ
@@ -278,13 +290,17 @@ docker compose logs      # ログ確認
 - `DELETE /api/formulas/:id` - 数式削除
 - `POST /api/tables/:tableId/cells/:rowId/:columnId/apply-formula` - セルに数式適用
 
+### 計算履歴
+- `GET /api/tables/:tableId/calculation-history` - テーブルの計算履歴取得
+
 ## 特徴的な機能
 
 ### 1. モダンなUI/UX
 - **ツールバー**: 直感的な操作ボタンとステータス表示
 - **サイドバー**: テーブル・数式の一覧管理
-- **グリッド**: AG-Grid採用で高性能な表示・編集
+- **グリッド**: TanStack React Table採用で高性能な表示・編集
 - **数式エディタ**: リアルタイムエラー表示とシンタックスヒント
+- **視覚的表示**: 数式適用セルの緑色ハイライトと「f」アイコン表示
 
 ### 2. リアルタイム依存関係管理
 セルの値が変更されると、そのセルに依存する全てのセルが自動的に再計算されます。
@@ -297,6 +313,14 @@ Redisを使用して計算結果をキャッシュし、同じ計算の繰り返
 
 ### 5. WebSocketリアルタイム更新
 複数のクライアント間でセルの変更をリアルタイムに同期します。
+
+### 6. 計算履歴トレース
+数式適用の完全な履歴を記録し、以下の機能を提供します：
+- **自動履歴保存**: 数式適用時に自動的に履歴をデータベースに保存
+- **詳細情報記録**: セル位置、数式名、計算式、結果値、適用日時を記録
+- **履歴表示**: ツールバーから過去の計算履歴を時系列で表示
+- **視覚的識別**: 数式適用済みセルを緑色背景と「f」アイコンで表示
+- **ホバー情報**: セルにマウスを合わせると適用されている数式名を表示
 
 ## トラブルシューティング
 

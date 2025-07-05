@@ -9,6 +9,7 @@ interface ToolbarProps {
   isFormulaEditorOpen: boolean;
   onFormulaApplicator?: () => void;
   isFormulaApplicatorOpen?: boolean;
+  onCalculationHistory?: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -19,7 +20,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onFormulaEditor,
   isFormulaEditorOpen,
   onFormulaApplicator,
-  isFormulaApplicatorOpen
+  isFormulaApplicatorOpen,
+  onCalculationHistory
 }) => {
   return (
     <div style={{
@@ -132,6 +134,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             }}
           >
             ⚡ 数式適用
+          </button>
+        )}
+
+        {onCalculationHistory && (
+          <button
+            onClick={onCalculationHistory}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#17a2b8',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#138496'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#17a2b8'}
+          >
+            📊 計算履歴
           </button>
         )}
 

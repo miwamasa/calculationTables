@@ -1,5 +1,56 @@
 const Cell = require('../models/Cell');
 
+// 数式計算関数（クラス外で定義）
+function calculateFormula(expression, rowCells, table) {
+  console.log('calculateFormula called with:', { expression, rowCells, table });
+  
+  switch (expression.type) {
+    case 'add':
+      const addValues = calculateOperands(expression.operands, rowCells, table);
+      console.log('Add operation values:', addValues);
+      return addValues.reduce((sum, val) => sum + val, 0);
+    
+    case 'subtract':
+      const subtractValues = calculateOperands(expression.operands, rowCells, table);
+      console.log('Subtract operation values:', subtractValues);
+      return subtractValues.reduce((result, val, index) => 
+        index === 0 ? val : result - val
+      );
+    
+    case 'multiply':
+      const multiplyValues = calculateOperands(expression.operands, rowCells, table);
+      console.log('Multiply operation values:', multiplyValues);
+      return multiplyValues.reduce((product, val) => product * val, 1);
+    
+    case 'divide':
+      const divideValues = calculateOperands(expression.operands, rowCells, table);
+      console.log('Divide operation values:', divideValues);
+      return divideValues.reduce((result, val, index) => 
+        index === 0 ? val : result / val
+      );
+    
+    case 'constant':
+      console.log('Constant value:', expression.value);
+      return expression.value;
+    
+    case 'cell_reference':
+      const cell = rowCells.find(c => c.column_id === expression.column);
+      console.log('Cell reference lookup:', { 
+        column: expression.column, 
+        cell: cell,
+        availableCells: rowCells.map(c => ({column_id: c.column_id, value: c.value}))
+      });
+      return cell ? parseFloat(cell.value) || 0 : 0;
+    
+    default:
+      throw new Error(`Unknown expression type: ${expression.type}`);
+  }
+}
+
+function calculateOperands(operands, rowCells, table) {
+  return operands.map(operand => calculateFormula(operand, rowCells, table));
+}
+
 class CellController {
   async createCell(req, res) {
     try {
@@ -216,14 +267,21 @@ class CellController {
       const { tableId, rowId, columnId } = req.params;
       const { formulaId } = req.body;
       
+      console.log('=== applyFormulaToCell Debug ===');
+      console.log('Request params:', { tableId, rowId, columnId, formulaId });
+      
       const Formula = require('../models/Formula');
       const Table = require('../models/Table');
+      const CalculationHistory = require('../models/CalculationHistory');
       
       // 数式とテーブル情報を取得
       const [formula, table] = await Promise.all([
         Formula.findById(formulaId),
         Table.findById(tableId)
       ]);
+      
+      console.log('Formula:', formula);
+      console.log('Table:', table);
       
       if (!formula) {
         return res.status(404).json({ error: 'Formula not found' });
@@ -239,8 +297,13 @@ class CellController {
         row_id: rowId 
       });
       
+      console.log('Row cells:', rowCells);
+      console.log('Formula expression:', formula.expression);
+      
       // 数式を計算
-      const result = await this.calculateFormula(formula.expression, rowCells, table);
+      const result = calculateFormula(formula.expression, rowCells, table);
+      
+      console.log('Calculation result:', result);
       
       // セルを更新
       const cell = await Cell.findOneAndUpdate(
@@ -254,50 +317,46 @@ class CellController {
         { new: true, upsert: true }
       );
       
+      console.log('Updated cell:', cell);
+      
+      // 計算履歴を保存
+      const historyEntry = new CalculationHistory({
+        table_id: tableId,
+        row_id: rowId,
+        column_id: columnId,
+        formula_id: formulaId,
+        formula_name: formula.name,
+        formula_expression: formula.expression,
+        calculated_value: result,
+        applied_at: new Date()
+      });
+      
+      await historyEntry.save();
+      console.log('Calculation history saved:', historyEntry);
+      
       res.json(cell);
     } catch (error) {
+      console.error('Error in applyFormulaToCell:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  async calculateFormula(expression, rowCells, table) {
-    // シンプルな数式計算エンジン
-    switch (expression.type) {
-      case 'add':
-        return this.calculateOperands(expression.operands, rowCells, table)
-          .reduce((sum, val) => sum + val, 0);
+  async getCalculationHistory(req, res) {
+    try {
+      const { tableId } = req.params;
+      const CalculationHistory = require('../models/CalculationHistory');
       
-      case 'subtract':
-        const subtractValues = this.calculateOperands(expression.operands, rowCells, table);
-        return subtractValues.reduce((result, val, index) => 
-          index === 0 ? val : result - val
-        );
+      const history = await CalculationHistory.find({ table_id: tableId })
+        .sort({ applied_at: -1 })
+        .limit(100);
       
-      case 'multiply':
-        return this.calculateOperands(expression.operands, rowCells, table)
-          .reduce((product, val) => product * val, 1);
-      
-      case 'divide':
-        const divideValues = this.calculateOperands(expression.operands, rowCells, table);
-        return divideValues.reduce((result, val, index) => 
-          index === 0 ? val : result / val
-        );
-      
-      case 'constant':
-        return expression.value;
-      
-      case 'cell_reference':
-        const cell = rowCells.find(c => c.column_id === expression.column);
-        return cell ? parseFloat(cell.value) || 0 : 0;
-      
-      default:
-        throw new Error(`Unknown expression type: ${expression.type}`);
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching calculation history:', error);
+      res.status(500).json({ error: error.message });
     }
   }
 
-  calculateOperands(operands, rowCells, table) {
-    return operands.map(operand => this.calculateFormula(operand, rowCells, table));
-  }
 }
 
 module.exports = new CellController();

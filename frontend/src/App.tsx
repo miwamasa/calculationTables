@@ -6,6 +6,7 @@ import { FormulaEditor } from './components/FormulaEditor';
 import { FormulaApplicator } from './components/FormulaApplicator';
 import { FormulaEditorModal } from './components/FormulaEditorModal';
 import { TableEditor } from './components/TableEditor';
+import { CalculationHistory } from './components/CalculationHistory';
 import { useTableManagement } from './hooks/useTableManagement';
 import { useTableData } from './hooks/useTableData';
 import './App.css';
@@ -18,6 +19,7 @@ function App() {
   const [showFormulaApplicator, setShowFormulaApplicator] = React.useState(false);
   const [showTableEditor, setShowTableEditor] = React.useState(false);
   const [showFormulaEditorModal, setShowFormulaEditorModal] = React.useState(false);
+  const [showCalculationHistory, setShowCalculationHistory] = React.useState(false);
   const [editingTableId, setEditingTableId] = React.useState<string | null>(null);
   const [editingFormulaId, setEditingFormulaId] = React.useState<string | null>(null);
 
@@ -183,23 +185,37 @@ function App() {
     if (!selectedTableId) return;
     
     try {
+      console.log('handleApplyFormula called with:', { formulaId, cellId, selectedTableId });
+      
       // cellIdから tableId, rowId, columnId を抽出
+      // 形式: tableId_row_N_columnId
       const parts = cellId.split('_');
-      if (parts.length < 3) {
+      console.log('CellId parts:', parts);
+      
+      if (parts.length < 4) {
+        console.error('Invalid cellId format:', cellId);
         alert('無効なセルIDです');
         return;
       }
       
-      const rowId = parts[1];
-      const columnId = parts[2];
+      // 形式: tableId_row_N_columnId
+      const tableIdFromCell = parts[0];
+      const rowId = `${parts[1]}_${parts[2]}`; // 'row_N' の形式
+      const columnId = parts.slice(3).join('_'); // columnIdに_が含まれている場合に対応
       
-      console.log('Applying formula:', { formulaId, tableId: selectedTableId, rowId, columnId });
+      console.log('Extracted values:', { tableIdFromCell, rowId, columnId });
+      console.log('Using tableId:', selectedTableId);
       
-      await applyFormulaToCell(selectedTableId, rowId, columnId, formulaId);
-      console.log('Formula applied successfully');
+      const result = await applyFormulaToCell(selectedTableId, rowId, columnId, formulaId);
+      console.log('Formula applied successfully, result:', result);
       
-      // 成功メッセージ
-      alert('数式が適用されました！');
+      // データを再取得して確実に更新
+      await refreshData();
+      
+      // 成功メッセージに計算結果を表示
+      const formula = formulas.find(f => f._id === formulaId);
+      const formulaName = formula ? formula.name : '数式';
+      alert(`${formulaName}が適用されました！\n計算結果: ${result.value}`);
     } catch (error) {
       console.error('Error applying formula:', error);
       alert('数式の適用に失敗しました');
@@ -255,6 +271,7 @@ function App() {
         isFormulaEditorOpen={showFormulaEditor}
         onFormulaApplicator={() => setShowFormulaApplicator(!showFormulaApplicator)}
         isFormulaApplicatorOpen={showFormulaApplicator}
+        onCalculationHistory={() => setShowCalculationHistory(true)}
       />
 
       {/* メインエリア */}
@@ -282,6 +299,7 @@ function App() {
             <SimpleTableGrid
               table={table}
               cells={cells}
+              formulas={formulas}
               onCellEdit={handleCellEdit}
               onCellSelect={handleCellSelect}
               onAddRow={handleAddRow}
@@ -329,6 +347,13 @@ function App() {
         isOpen={showFormulaEditorModal}
         onSave={handleFormulaSave}
         onCancel={handleFormulaCancel}
+      />
+
+      {/* 計算履歴モーダル */}
+      <CalculationHistory
+        tableId={selectedTableId}
+        isVisible={showCalculationHistory}
+        onClose={() => setShowCalculationHistory(false)}
       />
     </div>
   );

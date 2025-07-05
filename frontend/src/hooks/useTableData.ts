@@ -19,6 +19,7 @@ interface Cell {
   column_id: string;
   value: any;
   type: string;
+  formula_id?: string;
 }
 
 export const useTableData = (tableId: string | null) => {
@@ -189,28 +190,45 @@ export const useTableData = (tableId: string | null) => {
       
       // ローカル状態を更新
       setCells(prevCells => {
-        const updatedCells = prevCells.map(cell => 
-          cell.table_id === tableId && cell.row_id === rowId && cell.column_id === columnId
-            ? { ...cell, value: response.data.value, formula_id: formulaId }
-            : cell
-        );
+        console.log('=== setCells Update Debug ===');
+        console.log('Previous cells count:', prevCells.length);
+        console.log('Looking for cell:', { tableId, rowId, columnId });
+        console.log('Response data:', response.data);
+        console.log('Response data value:', response.data.value);
+        
+        const updatedCells = prevCells.map(cell => {
+          if (cell.table_id === tableId && cell.row_id === rowId && cell.column_id === columnId) {
+            console.log('Found matching cell, updating:', cell);
+            const updatedCell = { ...cell, value: response.data.value, formula_id: formulaId };
+            console.log('Updated cell:', updatedCell);
+            return updatedCell;
+          }
+          return cell;
+        });
         
         // セルが存在しない場合は新規追加
         const cellExists = prevCells.some(cell => 
           cell.table_id === tableId && cell.row_id === rowId && cell.column_id === columnId
         );
         
+        console.log('Cell exists:', cellExists);
+        
         if (!cellExists) {
-          updatedCells.push({
+          const newCell = {
             _id: response.data._id,
             table_id: tableId,
             row_id: rowId,
             column_id: columnId,
             value: response.data.value,
             type: 'number'
-          });
+          };
+          console.log('Adding new cell:', newCell);
+          updatedCells.push(newCell);
         }
         
+        console.log('Final updated cells count:', updatedCells.length);
+        console.log('Final updated cells:', updatedCells);
+        console.log('=== End setCells Update Debug ===');
         return updatedCells;
       });
       
