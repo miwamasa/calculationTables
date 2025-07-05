@@ -19,6 +19,8 @@ interface SidebarProps {
   onTableSelect: (tableId: string) => void;
   onNewTable: () => void;
   onNewFormula: () => void;
+  onDeleteTable: (tableId: string) => void;
+  onEditTable: (tableId: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -27,7 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedTableId,
   onTableSelect,
   onNewTable,
-  onNewFormula
+  onNewFormula,
+  onDeleteTable,
+  onEditTable
 }) => {
   return (
     <div style={{
@@ -77,35 +81,85 @@ export const Sidebar: React.FC<SidebarProps> = ({
             tables.map(table => (
               <div
                 key={table._id}
-                onClick={() => onTableSelect(table._id)}
                 style={{
-                  padding: '8px 12px',
                   marginBottom: '4px',
                   backgroundColor: selectedTableId === table._id ? '#e3f2fd' : 'white',
                   border: '1px solid #dee2e6',
                   borderRadius: '4px',
-                  cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => {
-                  if (selectedTableId !== table._id) {
-                    e.currentTarget.style.backgroundColor = '#f5f5f5';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedTableId !== table._id) {
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }
-                }}
               >
-                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                  {table.name}
-                </div>
-                {table.description && (
-                  <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
-                    {table.description}
+                <div
+                  onClick={() => onTableSelect(table._id)}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedTableId !== table._id) {
+                      e.currentTarget.parentElement!.style.backgroundColor = '#f5f5f5';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedTableId !== table._id) {
+                      e.currentTarget.parentElement!.style.backgroundColor = 'white';
+                    }
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                    {table.name}
                   </div>
-                )}
+                  {table.description && (
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
+                      {table.description}
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderTop: '1px solid #dee2e6'
+                }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditTable(table._id);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    編集
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`「${table.name}」を削除しますか？`)) {
+                        onDeleteTable(table._id);
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    削除
+                  </button>
+                </div>
               </div>
             ))
           )}

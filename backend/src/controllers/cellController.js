@@ -50,12 +50,8 @@ class CellController {
           formula_id,
           updated_at: new Date() 
         },
-        { new: true }
+        { new: true, upsert: true }
       );
-      
-      if (!cell) {
-        return res.status(404).json({ error: 'Cell not found' });
-      }
       
       res.json(cell);
     } catch (error) {
@@ -85,6 +81,73 @@ class CellController {
       const cells = await Cell.find({ table_id: tableId }).populate('formula_id');
       
       res.json(cells);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async updateOrCreateCell(req, res) {
+    try {
+      const { tableId, rowId, columnId } = req.params;
+      const { value, type } = req.body;
+      
+      const cell = await Cell.findOneAndUpdate(
+        { table_id: tableId, row_id: rowId, column_id: columnId },
+        { 
+          value, 
+          type: type || 'string',
+          updated_at: new Date() 
+        },
+        { new: true, upsert: true }
+      );
+      
+      res.json(cell);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async createSampleData(req, res) {
+    try {
+      const { tableId } = req.params;
+      
+      // 既存のセルを削除
+      await Cell.deleteMany({ table_id: tableId });
+      
+      // サンプルデータを作成
+      const sampleCells = [];
+      for (let row = 1; row <= 5; row++) {
+        for (let col = 1; col <= 4; col++) {
+          const columnId = `col_${col}`;
+          let value = '';
+          let type = 'string';
+          
+          if (col === 1) {
+            value = `商品${row}`;
+            type = 'string';
+          } else if (col === 2) {
+            value = 1000 + (row * 100);
+            type = 'number';
+          } else if (col === 3) {
+            value = row * 2;
+            type = 'number';
+          } else if (col === 4) {
+            value = (1000 + (row * 100)) * (row * 2);
+            type = 'number';
+          }
+          
+          sampleCells.push({
+            table_id: tableId,
+            row_id: `row_${row}`,
+            column_id: columnId,
+            value: value,
+            type: type
+          });
+        }
+      }
+      
+      const createdCells = await Cell.insertMany(sampleCells);
+      res.json(createdCells);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

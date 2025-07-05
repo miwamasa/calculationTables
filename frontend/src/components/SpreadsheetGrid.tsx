@@ -6,11 +6,12 @@ import { useTableData } from '../hooks/useTableData';
 
 interface SpreadsheetGridProps {
   tableId: string;
+  updateCell: (tableId: string, rowId: string, columnId: string, newValue: any) => Promise<any>;
 }
 
-export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ tableId }) => {
+export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ tableId, updateCell }) => {
   const { socket } = useWebSocket();
-  const { table, cells, updateCell } = useTableData(tableId);
+  const { table, cells } = useTableData(tableId);
   const [gridApi, setGridApi] = React.useState<GridApi | null>(null);
 
   const onGridReady = (params: GridReadyEvent) => {
@@ -19,14 +20,15 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ tableId }) => 
 
   const onCellValueChanged = useCallback(async (params: any) => {
     const { colDef, newValue, rowIndex } = params;
-    const cellId = `${tableId}_${rowIndex}_${colDef.field}`;
+    const rowId = `row_${rowIndex + 1}`;
+    const columnId = colDef.field;
     
-    await updateCell(cellId, newValue);
+    await updateCell(tableId, rowId, columnId, newValue);
     
     // WebSocket経由で更新を送信
     socket?.emit('cell:update', {
       tableId,
-      cellId,
+      cellId: `${tableId}_${rowId}_${columnId}`,
       value: newValue
     });
   }, [tableId, updateCell, socket]);

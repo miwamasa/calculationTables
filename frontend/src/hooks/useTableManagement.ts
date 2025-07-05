@@ -118,6 +118,17 @@ export const useTableManagement = () => {
     }
   };
 
+  // サンプルデータ作成
+  const createSampleData = async (tableId: string) => {
+    try {
+      const response = await axios.post(`${apiUrl}/api/tables/${tableId}/sample-data`);
+      return response.data;
+    } catch (err) {
+      console.error('Error creating sample data:', err);
+      throw err;
+    }
+  };
+
   return {
     tables,
     formulas,
@@ -126,6 +137,7 @@ export const useTableManagement = () => {
     createTable,
     createFormula,
     updateTable,
-    deleteTable
+    deleteTable,
+    createSampleData
   };
 };

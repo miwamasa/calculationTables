@@ -19,6 +19,8 @@ router.get('/cells/:id', cellController.getCell);
 router.put('/cells/:id', cellController.updateCell);
 router.delete('/cells/:id', cellController.deleteCell);
 router.get('/cells/table/:tableId', cellController.getCellsByTable);
+router.put('/tables/:tableId/cells/:rowId/:columnId', cellController.updateOrCreateCell);
+router.post('/tables/:tableId/sample-data', cellController.createSampleData);
 
 // Formula routes
 router.post('/formulas', formulaController.createFormula);

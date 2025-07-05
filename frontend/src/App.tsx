@@ -3,6 +3,7 @@ import { Toolbar } from './components/Toolbar';
 import { Sidebar } from './components/Sidebar';
 import { TableGrid } from './components/TableGrid';
 import { FormulaEditor } from './components/FormulaEditor';
+import { TableEditor } from './components/TableEditor';
 import { useTableManagement } from './hooks/useTableManagement';
 import { useTableData } from './hooks/useTableData';
 import './App.css';
@@ -11,20 +12,38 @@ function App() {
   const [selectedTableId, setSelectedTableId] = React.useState<string | null>(null);
   const [selectedCellId, setSelectedCellId] = React.useState<string>('');
   const [showFormulaEditor, setShowFormulaEditor] = React.useState(false);
+  const [showTableEditor, setShowTableEditor] = React.useState(false);
+  const [editingTableId, setEditingTableId] = React.useState<string | null>(null);
 
-  const { tables, formulas, loading: managementLoading, createTable, createFormula } = useTableManagement();
+  const { 
+    tables, 
+    formulas, 
+    loading: managementLoading, 
+    createTable, 
+    createFormula,
+    updateTable,
+    deleteTable,
+    createSampleData
+  } = useTableManagement();
   const { table, cells, loading: tableLoading, updateCell } = useTableData(selectedTableId);
 
   const selectedTable = tables.find(t => t._id === selectedTableId);
 
-  const handleTableSelect = (tableId: string) => {
+  const handleTableSelect = async (tableId: string) => {
     setSelectedTableId(tableId);
     setSelectedCellId('');
+    
+    // サンプルデータを作成（データがない場合）
+    try {
+      await createSampleData(tableId);
+    } catch (error) {
+      console.error('Error creating sample data:', error);
+    }
   };
 
-  const handleCellEdit = async (cellId: string, newValue: any) => {
+  const handleCellEdit = async (tableId: string, rowId: string, columnId: string, newValue: any) => {
     try {
-      await updateCell(cellId, newValue);
+      await updateCell(tableId, rowId, columnId, newValue);
     } catch (error) {
       console.error('Error updating cell:', error);
     }
@@ -91,6 +110,38 @@ function App() {
     alert('設定機能は今後実装予定です');
   };
 
+  const handleEditTable = (tableId: string) => {
+    setEditingTableId(tableId);
+    setShowTableEditor(true);
+  };
+
+  const handleDeleteTable = async (tableId: string) => {
+    try {
+      await deleteTable(tableId);
+      if (selectedTableId === tableId) {
+        setSelectedTableId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting table:', error);
+      alert('テーブルの削除に失敗しました');
+    }
+  };
+
+  const handleTableSave = async (updatedTable: any) => {
+    if (!editingTableId) return;
+    
+    try {
+      await updateTable(editingTableId, updatedTable);
+      setShowTableEditor(false);
+      setEditingTableId(null);
+    } catch (error) {
+      console.error('Error updating table:', error);
+      alert('テーブルの更新に失敗しました');
+    }
+  };
+
+  const editingTable = editingTableId ? tables.find(t => t._id === editingTableId) : null;
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* ツールバー */}
@@ -113,6 +164,8 @@ function App() {
           onTableSelect={handleTableSelect}
           onNewTable={handleNewTable}
           onNewFormula={handleNewFormula}
+          onDeleteTable={handleDeleteTable}
+          onEditTable={handleEditTable}
         />
 
         {/* 表ビューエリア */}
@@ -137,6 +190,20 @@ function App() {
           />
         </div>
       </div>
+
+      {/* テーブルエディタモーダル */}
+      {showTableEditor && editingTable && (
+        <TableEditor
+          table={editingTable}
+          onSave={handleTableSave}
+          onAddColumn={() => {}}
+          onDeleteColumn={() => {}}
+          onClose={() => {
+            setShowTableEditor(false);
+            setEditingTableId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent, CellEditingStoppedEvent } from 'ag-grid-community';
+import { EditingInstructions } from './EditingInstructions';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
@@ -28,7 +29,7 @@ interface Cell {
 interface TableGridProps {
   table: Table | null;
   cells: Cell[];
-  onCellEdit: (cellId: string, newValue: any) => void;
+  onCellEdit: (tableId: string, rowId: string, columnId: string, newValue: any) => void;
   onCellSelect: (cellId: string) => void;
   loading: boolean;
 }
@@ -45,7 +46,7 @@ export const TableGrid: React.FC<TableGridProps> = ({
 
   // セルデータをグリッド用の行データに変換
   useEffect(() => {
-    if (!table || !cells.length) {
+    if (!table) {
       setRowData([]);
       return;
     }
@@ -60,6 +61,21 @@ export const TableGrid: React.FC<TableGridProps> = ({
       rowsMap.get(cell.row_id)![cell.column_id] = cell.value;
     });
 
+    // 空の行データがない場合は、少なくとも10行の空行を作成
+    const existingRows = Array.from(rowsMap.values());
+    const totalRows = Math.max(existingRows.length, 10);
+    
+    for (let i = existingRows.length + 1; i <= totalRows; i++) {
+      const rowId = `row_${i}`;
+      if (!rowsMap.has(rowId)) {
+        const emptyRow: any = { id: rowId };
+        table.columns.forEach(col => {
+          emptyRow[col.id] = '';
+        });
+        rowsMap.set(rowId, emptyRow);
+      }
+    }
+
     setRowData(Array.from(rowsMap.values()));
   }, [table, cells]);
 
@@ -68,9 +84,11 @@ export const TableGrid: React.FC<TableGridProps> = ({
   };
 
   const onCellEditingStopped = useCallback((event: CellEditingStoppedEvent) => {
-    if (event.oldValue !== event.newValue) {
-      const cellId = `${table?._id}_${event.data.id}_${event.colDef.field}`;
-      onCellEdit(cellId, event.newValue);
+    if (event.oldValue !== event.newValue && table && event.colDef.field) {
+      const tableId = table._id;
+      const rowId = event.data.id;
+      const columnId = event.colDef.field;
+      onCellEdit(tableId, rowId, columnId, event.newValue);
     }
   }, [table, onCellEdit]);
 
@@ -88,14 +106,25 @@ export const TableGrid: React.FC<TableGridProps> = ({
       headerName: col.name,
       width: col.width || 150,
       editable: true,
-      cellDataType: col.type === 'number' ? 'number' : 'text',
+      cellEditor: 'agTextCellEditor',
+      cellEditorParams: {
+        maxLength: 1000
+      },
+      valueParser: (params: any) => {
+        // 数値型の場合は数値に変換
+        if (col.type === 'number') {
+          const parsed = parseFloat(params.newValue);
+          return isNaN(parsed) ? params.oldValue : parsed;
+        }
+        return params.newValue;
+      },
       valueFormatter: col.format === 'currency' ? 
-        (params) => params.value ? `¥${params.value.toLocaleString()}` : '' : 
+        (params: any) => params.value ? `¥${Number(params.value).toLocaleString()}` : '' : 
         undefined,
       cellStyle: col.type === 'formula' ? 
         { backgroundColor: '#f8f9fa', fontStyle: 'italic' } : 
-        undefined
-    }));
+        { backgroundColor: 'white' }
+    } as ColDef));
   }, [table]);
 
   if (loading) {
@@ -131,7 +160,8 @@ export const TableGrid: React.FC<TableGridProps> = ({
   }
 
   return (
-    <div className="ag-theme-alpine" style={{ height: '100%', width: '100%' }}>
+    <div className="ag-theme-alpine" style={{ height: '100%', width: '100%', position: 'relative' }}>
+      <EditingInstructions />
       <AgGridReact
         columnDefs={columnDefs}
         rowData={rowData}
@@ -141,13 +171,17 @@ export const TableGrid: React.FC<TableGridProps> = ({
         defaultColDef={{
           resizable: true,
           sortable: true,
-          filter: true
+          filter: true,
+          editable: true
         }}
         suppressRowClickSelection={true}
         rowSelection="single"
         animateRows={true}
         enableCellTextSelection={true}
         ensureDomOrder={true}
+        stopEditingWhenCellsLoseFocus={true}
+        undoRedoCellEditing={true}
+        undoRedoCellEditingLimit={10}
       />
     </div>
   );
